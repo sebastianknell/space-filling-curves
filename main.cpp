@@ -26,12 +26,25 @@ uint32_t getZOrder(uint16_t xPos, uint16_t yPos) {
     return result;
 }
 
+vector<int> grayOrderSequence;
+
+uint32_t getGrayOrder(uint16_t xPos, uint16_t yPos) {
+    if (grayOrderSequence.empty()) {
+        for (int i =0; i<1<<12; i++) {
+            grayOrderSequence.push_back(i^(i>>1));
+        }
+    }
+    auto n = getZOrder(xPos, yPos);
+    auto iter = find(grayOrderSequence.begin(), grayOrderSequence.end(), n);
+    return distance(iter, grayOrderSequence.begin());
+}
+
 void fillImage(cv::InputOutputArray &img, const function<uint32_t(uint16_t, uint16_t)>& orderFunction) {
     using pos = struct{int x; int y; uint32_t h;};
     vector<pos> points;
     for (int i = 0; i < img.rows(); i+=20) {
         for (int j = 0; j < img.cols(); j+=20) {
-            points.push_back({i, j, orderFunction(i, j)});
+            points.push_back({i, j, orderFunction(i/20, j/20)});
         }
     }
     sort(points.begin(), points.end(), [](pos a, pos b) {
@@ -39,14 +52,17 @@ void fillImage(cv::InputOutputArray &img, const function<uint32_t(uint16_t, uint
     });
 
     for (int i = 0; i < points.size() - 1; i++) {
-        cv::line(img,{points[i].x, points[i].y},{points[i+1].x, points[i+1].y}, {0,0,0},2);
+        cv::Point p1 = {points[i].x, points[i].y};
+        cv::Point p2 = {points[i+1].x, points[i+1].y};
+        cv::line(img, p1, p2, {0,0,0},2);
     }
 }
 
 int main() {
-    cv::Mat img(1000,1000,CV_8UC3,cv::Scalar(255,255,255));
+    cv::Mat img(640,640,CV_8UC3,cv::Scalar(255,255,255));
 
-    fillImage(img, getZOrder);
+//    fillImage(img, getZOrder);
+    fillImage(img, getGrayOrder);
 
     cv::imshow("Z order", img);
     cv::waitKey(0);
