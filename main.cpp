@@ -26,9 +26,8 @@ uint32_t getZOrder(uint16_t xPos, uint16_t yPos) {
     return result;
 }
 
-vector<int> grayOrderSequence;
-
 uint32_t getGrayOrder(uint16_t xPos, uint16_t yPos) {
+    static vector<int> grayOrderSequence;
     if (grayOrderSequence.empty()) {
         for (int i =0; i<1<<12; i++) {
             grayOrderSequence.push_back(i^(i>>1));
@@ -36,7 +35,12 @@ uint32_t getGrayOrder(uint16_t xPos, uint16_t yPos) {
     }
     auto n = getZOrder(xPos, yPos);
     auto iter = find(grayOrderSequence.begin(), grayOrderSequence.end(), n);
-    return distance(iter, grayOrderSequence.begin());
+    long index = iter - grayOrderSequence.begin();
+    return index;
+}
+
+uint32_t getDoubleGrayOrder(uint16_t xPos, uint16_t yPos) {
+    return getGrayOrder(xPos^(xPos>>1), yPos^(yPos>>1));
 }
 
 void fillImage(cv::InputOutputArray &img, const function<uint32_t(uint16_t, uint16_t)>& orderFunction) {
@@ -60,12 +64,43 @@ void fillImage(cv::InputOutputArray &img, const function<uint32_t(uint16_t, uint
 
 int main() {
     cv::Mat img(640,640,CV_8UC3,cv::Scalar(255,255,255));
-
-//    fillImage(img, getZOrder);
-    fillImage(img, getGrayOrder);
-
-    cv::imshow("Z order", img);
-    cv::waitKey(0);
+    string windowName = "Space Filling Curves";
+    cv::imshow(windowName, img);
+    int option;
+    do {
+        cout << "Space Filling Curves" << endl;
+        cout << "1. Z Order" << endl;
+        cout << "2. Gray Order" << endl;
+        cout << "3. Double Gray Order" << endl;
+        cout << "Press q to quit the visualization" << endl;
+        cout << "Enter 0 to exit the program" << endl;
+        cout << "Enter number from 1 to 3: ";
+        cin >> option;
+        if (option == 0) break;
+        img.setTo(cv::Scalar(255, 255, 255));
+        switch (option) {
+            case 1:
+                fillImage(img, getZOrder);
+                cv::imshow(windowName, img);
+                break;
+            case 2:
+                fillImage(img, getGrayOrder);
+                cv::imshow(windowName, img);
+                break;
+            case 3:
+                fillImage(img, getDoubleGrayOrder);
+                cv::imshow(windowName, img);
+                break;
+            default:
+                fillImage(img, getZOrder);
+                cv::imshow(windowName, img);
+                break;
+        }
+        char c;
+        do {
+            c = (char)cv::waitKey(0);
+        } while (c != 'q');
+    } while (option != 0);
 
     return 0;
 }
