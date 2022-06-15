@@ -62,6 +62,31 @@ void fillImage(cv::InputOutputArray &img, const function<uint32_t(uint16_t, uint
     }
 }
 
+using point = struct {double x; double y;};
+
+void hilbert_rec(vector<point> &points, double x, double y, double xi, double xj, double yi, double yj, double n) {
+    if (n <=0) {
+        points.push_back({x + (xi + yi) / 2, y + (xj + yj) / 2});
+        return;
+    }
+    else {
+        hilbert_rec(points, x, y, yi/2, yj/2, xi/2, xj/2, n-1);
+        hilbert_rec(points, x+xi/2, y+xj/2, xi/2, xj/2, yi/2, yj/2, n-1);
+        hilbert_rec(points, x+xi/2+yi/2, y+xj/2+yj/2, xi/2, xj/2, yi/2, yj/2, n-1);
+        hilbert_rec(points, x+xi/2+yi, y+xj/2+yj, -yi/2, -yj/2, -xi/2, -xj/2, n-1);
+    }
+}
+void hilbert(cv::InputOutputArray &img) {
+    vector<point> points;
+    hilbert_rec(points, 0, 0, img.cols(), 0, 0, img.rows(), 4);
+    for (int i = 0; i < points.size() - 1; i++) {
+        cv::Point p1 = {(int)points[i].x, (int)points[i].y};
+        cv::Point p2 = {(int)points[i+1].x, (int)points[i+1].y};
+        cv::line(img, p1, p2, {0,0,0}, 1);
+    }
+}
+
+
 int main() {
     cv::Mat img(640,640,CV_8UC3,cv::Scalar(255,255,255));
     string windowName = "Space Filling Curves";
@@ -72,9 +97,10 @@ int main() {
         cout << "1. Z Order" << endl;
         cout << "2. Gray Order" << endl;
         cout << "3. Double Gray Order" << endl;
+        cout << "4. Hilbert Order" << endl;
         cout << "Press q to quit the visualization" << endl;
         cout << "Enter 0 to exit the program" << endl;
-        cout << "Enter number from 1 to 3: ";
+        cout << "Enter number from 1 to 4: ";
         cin >> option;
         if (option == 0) break;
         img.setTo(cv::Scalar(255, 255, 255));
@@ -89,6 +115,10 @@ int main() {
                 break;
             case 3:
                 fillImage(img, getDoubleGrayOrder);
+                cv::imshow(windowName, img);
+                break;
+            case 4:
+                hilbert(img);
                 cv::imshow(windowName, img);
                 break;
             default:
